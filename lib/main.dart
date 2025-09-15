@@ -26,12 +26,14 @@ class LocationTrackerPage extends StatefulWidget {
 class _LocationTrackerPageState extends State<LocationTrackerPage> {
   static const platform = MethodChannel('com.example.locationtracker/location');
   bool isServiceRunning = false;
+  bool isBatteryOptimized = false;
   String lastLocation = "No location yet";
 
   @override
   void initState() {
     super.initState();
     _checkServiceStatus();
+    _checkBatteryOptimization();
     _setupLocationListener();
   }
 
@@ -53,6 +55,38 @@ class _LocationTrackerPageState extends State<LocationTrackerPage> {
       });
     } catch (e) {
       print('Error checking service status: $e');
+    }
+  }
+
+  Future<void> _checkBatteryOptimization() async {
+    try {
+      final bool result = await platform.invokeMethod('isBatteryOptimized');
+      setState(() {
+        isBatteryOptimized = result;
+      });
+    } catch (e) {
+      print('Error checking battery optimization: $e');
+    }
+  }
+
+  Future<void> _requestBatteryOptimization() async {
+    try {
+      await platform.invokeMethod('requestBatteryOptimization');
+      // Recheck after user interaction
+      await Future.delayed(Duration(seconds: 2));
+      _checkBatteryOptimization();
+    } catch (e) {
+      print('Error requesting battery optimization: $e');
+      _showError('Failed to request battery optimization: $e');
+    }
+  }
+
+  Future<void> _openAutoStartSettings() async {
+    try {
+      await platform.invokeMethod('openAutoStartSettings');
+    } catch (e) {
+      print('Error opening auto start settings: $e');
+      _showError('Failed to open auto start settings: $e');
     }
   }
 
@@ -156,23 +190,62 @@ class _LocationTrackerPageState extends State<LocationTrackerPage> {
               ),
             ),
             SizedBox(height: 16),
-            ElevatedButton(
+            ElevatedButton.icon(
               onPressed: isServiceRunning ? null : _startLocationService,
-              child: Text('Start Location Service'),
+              icon: Icon(Icons.play_arrow),
+              label: Text('Start Location Service'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(vertical: 12),
+                minimumSize: Size(double.infinity, 48),
               ),
             ),
-            SizedBox(height: 16),
-            ElevatedButton(
+            SizedBox(height: 12),
+            ElevatedButton.icon(
               onPressed: isServiceRunning ? _stopLocationService : null,
-              child: Text('Stop Location Service'),
+              icon: Icon(Icons.stop),
+              label: Text('Stop Location Service'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(vertical: 12),
+                minimumSize: Size(double.infinity, 48),
+              ),
+            ),
+            SizedBox(height: 24),
+            Card(
+              color: Colors.blue.shade50,
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info, color: Colors.blue),
+                        SizedBox(width: 8),
+                        Text(
+                          'Important Notes:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      '• Complete all setup steps for reliable background operation\n'
+                      '• Service will continue running even when app is closed\n'
+                      '• Location is tracked every 5 minutes\n'
+                      '• Service automatically restarts after device reboot\n'
+                      '• Check manufacturer-specific battery/autostart settings',
+                      style:
+                          TextStyle(fontSize: 12, color: Colors.blue.shade700),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

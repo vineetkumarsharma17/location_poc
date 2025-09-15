@@ -205,6 +205,42 @@ class LocationService : Service(), LocationListener {
         Log.d(TAG, "Location saved to SharedPreferences")
     }
 
+    private fun acquireWakeLock() {
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock = powerManager.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "LocationTracker::LocationWakeLock"
+        )
+        wakeLock.acquire(10*60*1000L /*10 minutes - will be renewed*/)
+        Log.d(TAG, "WakeLock acquired")
+    }
+
+    private fun releaseWakeLock() {
+        if (::wakeLock.isInitialized && wakeLock.isHeld) {
+            wakeLock.release()
+            Log.d(TAG, "WakeLock released")
+        }
+    }
+
+    private fun saveServiceState(isRunning: Boolean) {
+        val prefs = getSharedPreferences("location_service", Context.MODE_PRIVATE)
+        prefs.edit().putBoolean("service_was_running", isRunning).apply()
+    }
+
+    // Override onTaskRemoved to restart service when app is removed from recents
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        Log.d(TAG, "App removed from recents, restarting service")
+        
+        // Restart the service
+        val intent = Intent(applicationContext, LocationService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
+    }
+
     fun setLocationCallback(callback: (String) -> Unit) {
         this.locationCallback = callback
     }
