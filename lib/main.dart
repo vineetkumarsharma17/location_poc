@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   runApp(MyApp());
@@ -8,7 +10,7 @@ void main() {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       title: 'Location Tracker',
       theme: ThemeData(
         primarySwatch: Colors.blue,
@@ -23,7 +25,8 @@ class LocationTrackerPage extends StatefulWidget {
   _LocationTrackerPageState createState() => _LocationTrackerPageState();
 }
 
-class _LocationTrackerPageState extends State<LocationTrackerPage> {
+class _LocationTrackerPageState extends State<LocationTrackerPage>
+    with WidgetsBindingObserver {
   static const platform = MethodChannel('com.example.locationtracker/location');
   bool isServiceRunning = false;
   bool isBatteryOptimized = false;
@@ -31,10 +34,28 @@ class _LocationTrackerPageState extends State<LocationTrackerPage> {
 
   @override
   void initState() {
+    WidgetsBinding.instance.addObserver(this);
     super.initState();
     _checkServiceStatus();
     _checkBatteryOptimization();
     _setupLocationListener();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // Remove observer
+    super.dispose();
+  }
+
+// This method is called whenever the app's lifecycle state changes
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      // App is resumed
+      print("App is resumed");
+      _requestPermissions();
+    }
   }
 
   void _setupLocationListener() {
@@ -53,6 +74,9 @@ class _LocationTrackerPageState extends State<LocationTrackerPage> {
       setState(() {
         isServiceRunning = result;
       });
+      if (!isServiceRunning) {
+        _requestPermissions();
+      }
     } catch (e) {
       print('Error checking service status: $e');
     }
@@ -115,7 +139,21 @@ class _LocationTrackerPageState extends State<LocationTrackerPage> {
 
   Future<void> _requestPermissions() async {
     try {
-      await platform.invokeMethod('requestPermissions');
+      // use permission handler to request permissions
+      PermissionStatus status = await Permission.locationAlways.request();
+      if (status.isGranted) {
+        _startLocationService();
+      } else {
+        Get.defaultDialog(
+          title: "Permission Denied",
+          middleText: "Location permission is required to start the service.",
+          textConfirm: "OK",
+          onConfirm: () {
+            Get.back();
+            openAppSettings();
+          },
+        );
+      }
     } catch (e) {
       print('Error requesting permissions: $e');
       _showError('Failed to request permissions: $e');
@@ -153,6 +191,28 @@ class _LocationTrackerPageState extends State<LocationTrackerPage> {
                       isServiceRunning ? 'Running' : 'Stopped',
                       style: TextStyle(
                         color: isServiceRunning ? Colors.green : Colors.red,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Card(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    Text(
+                      'Battery Optimization',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      isBatteryOptimized ? 'Optimized' : 'Not Optimized',
+                      style: TextStyle(
+                        color: isBatteryOptimized ? Colors.green : Colors.red,
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
                       ),

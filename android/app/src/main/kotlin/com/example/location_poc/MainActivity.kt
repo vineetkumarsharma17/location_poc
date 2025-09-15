@@ -41,7 +41,7 @@ class MainActivity: FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        
+
         methodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
         methodChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
@@ -64,11 +64,22 @@ class MainActivity: FlutterActivity() {
                 "isServiceRunning" -> {
                     result.success(isServiceRunning())
                 }
+                "isBatteryOptimized" -> {
+                    result.success(isBatteryOptimized())
+                }
                 else -> {
                     result.notImplemented()
                 }
             }
         }
+    }
+    private fun isBatteryOptimized(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+            val packageName = applicationContext.packageName
+            return !pm.isIgnoringBatteryOptimizations(packageName)
+        }
+        return false // Not optimized on older versions
     }
 
     private fun requestLocationPermissions() {
