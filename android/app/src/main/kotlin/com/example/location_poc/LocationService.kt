@@ -1,4 +1,4 @@
-package com.example.locationtracker
+package com.example.location_poc
 
 import android.app.*
 import android.content.Context
@@ -9,6 +9,7 @@ import android.location.LocationManager
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import java.text.SimpleDateFormat
@@ -19,6 +20,7 @@ class LocationService : Service(), LocationListener {
     private val binder = LocationBinder()
     private lateinit var locationManager: LocationManager
     private var locationCallback: ((String) -> Unit)? = null
+    private lateinit var wakeLock: PowerManager.WakeLock
     
     companion object {
         const val CHANNEL_ID = "LocationServiceChannel"

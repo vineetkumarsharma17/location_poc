@@ -1,4 +1,5 @@
-package com.example.locationtracker
+package com.example.location_poc
+
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -30,7 +31,7 @@ class BootReceiver : BroadcastReceiver() {
                 if (wasServiceRunning) {
                     Log.d(TAG, "Restarting location service after boot")
                     
-                    val serviceIntent = Intent(context, LocationService::class.java)
+                    val serviceIntent = Intent(context, com.example.location_poc.LocationService::class.java)
                     try {
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             context.startForegroundService(serviceIntent)

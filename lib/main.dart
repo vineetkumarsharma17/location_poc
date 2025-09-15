@@ -136,8 +136,8 @@ class _LocationTrackerPageState extends State<LocationTrackerPage> {
       ),
       body: Padding(
         padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: ListView(
+          // crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Card(
               child: Padding(
